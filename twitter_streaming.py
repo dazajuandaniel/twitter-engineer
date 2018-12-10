@@ -9,22 +9,19 @@ import boto3
 #Logging
 logger = config.setup_custom_logger(config.SQS_QUEUE_NAME)
 
-# Get the box coordinates from http://boundingbox.klokantech.com/
-AUS_GEO_CODE = [113.03, -39.06, 154.73, -12.28]
-
 auth = tweepy.OAuthHandler(config.CONSUMER_KEY_SAI, config.CONSUMER_SECRET_SAI)
 auth.set_access_token(config.ACCESS_TOKEN_SAI, config.ACCESS_SECRET_SAI)
 api = tweepy.API(auth,wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-
+count = 0
 class TwitterStream(StreamListener):
-    """A listener class that will listen twitter streaming data"""
+    """Listens to Streaming Data"""
 
     def __init__(self):
         sqs = boto3.resource('sqs')
         self.queue = sqs.get_queue_by_name(QueueName=config.SQS_QUEUE_NAME)
 
     def on_data(self, data):
-        """ Method to passes data from statuses to the on_status method"""
+        """ Passes data to Status """
         if 'in_reply_to_status' in data:
             self.on_status(data)
         elif 'delete' in data:
@@ -40,11 +37,12 @@ class TwitterStream(StreamListener):
             return False
 
     def on_status(self, status):
-        """ Handle logic when the data coming """
+        """ Based on Status """
         try:
             #tweet = json.loads(status)
             # Send to SQS Queue
-            response = self.queue.send_message(MessageBody=status)
+            #response = self.queue.send_message(MessageBody=status)
+            logger.info(count+1)
             #print (tweet)
         except Exception as e:
             logger.error(e)
@@ -55,7 +53,7 @@ class TwitterStream(StreamListener):
             self.on_timeout()
 
     def on_timeout(self):
-        """ Handle Limit Timeout """
+        """ Limit Timeout """
         logger.warning("API Reach its limit, sleep for 10 minutes")
         time.sleep(600)
         return
